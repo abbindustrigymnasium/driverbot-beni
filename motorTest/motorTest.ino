@@ -16,7 +16,7 @@ void loop() {
   delay(2200);
   digitalWrite(motorPinRightDir, dir);
   analogWrite(motorPinRightSpeed, speed);
-      delay(2200);      
+  delay(2200);      
   digitalWrite(motorPinRightDir, 1);
   analogWrite(motorPinRightSpeed, speed);
 }
