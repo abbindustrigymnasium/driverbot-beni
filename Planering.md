@@ -1,8 +1,20 @@
-Jag planerar att bygga ihop driverboten först så att jag kan fokusera på att bygga med hemsidan samt svelte och mqtt broker.
-Kör inte med jättestrikta deadlines då, det känns bättre att kunna fokusera på ett större område i taget. Mindre problem som dyker upp i de större problemen prioriteras,
-då de bidrar till att lösa de större problemen.
-Ground features- 4 wheel drive, med servo steering.
-Add-ons, möjligtvis en sensor för att mäta avstånd och lampa som lyser nära kollision. Led?
-Koppla hemsidan med js gamepad api så att jag kan köra med en ps4 kontroll.
-Kolla tutorials och fråga elever samt lärare, jobba på lektionerna.
+Bygg ihop driverboten:
 
+Skapa en plan för att montera och ansluta alla komponenter för driverboten.
+Fokusera på att få 4-hjulsdrift och servo-styrning att fungera korrekt.
+Om möjligt, integrera en sensor för att mäta avstånd och en lampa för att varna nära kollisioner.
+Arbeta med hemsidan, Svelte och MQTT-broker:
+
+Utveckla och designa hemsidan med Svelte.
+Anslut hemsidan till en MQTT-broker för kommunikation med driverboten.
+Implementera funktionalitet för att kontrollera driverboten från hemsidan.
+Integrera PS4-kontroll med JS Gamepad API:
+
+Utforska och använd JS Gamepad API för att hantera PS4-kontrollen.
+Koppla samman PS4-kontrollen med driverboten för att styra dess rörelser.
+Undersök tutorials och fråga elever samt lärare:
+
+Utforska tillgängliga tutorials för att få ytterligare vägledning och insikter.
+Var inte rädd för att fråga elever och lärare för hjälp och råd under processen.
+Aktivt delta i lektioner för att få ytterligare kunskap och förståelse för relevanta ämnen.
+[embed]file:///C:/Users/23bennga/Documents/Driverbot%20site.pdf[/embed]
