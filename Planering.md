@@ -17,4 +17,5 @@ Undersök tutorials och fråga elever samt lärare:
 Utforska tillgängliga tutorials för att få ytterligare vägledning och insikter.
 Var inte rädd för att fråga elever och lärare för hjälp och råd under processen.
 Aktivt delta i lektioner för att få ytterligare kunskap och förståelse för relevanta ämnen.
-[embed]file:///C:/Users/23bennga/Documents/Driverbot%20site.pdf[/embed]
+![Skärmbild 2024-04-18 112844](https://github.com/abbindustrigymnasium/driverbot-beni/assets/142907541/97fb4f70-30bd-48b1-8b89-281575a159a6)
+
