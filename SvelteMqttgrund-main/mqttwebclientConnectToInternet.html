@@ -1,102 +1,93 @@
 <!DOCTYPE html>
 <html>
-   <head>
-      <meta charset="utf-8">
-      <title>mqtt-demo: A simple web application that can subscribe to topics from an MQTT broker over websockets</title>
-      <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js" type="text/javascript"></script>
+<head>
+    <meta charset="utf-8">
+    <title>Gamepad Joystick Control</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js" type="text/javascript"></script>
+</head>
+<body>
+    <div class="wrapper">
+        <h1>Gamepad Joystick Control</h1>
+        <div id="gamepadStatus">Gamepad Status: Disconnected</div>
+        <div id="brokerdata"></div>
+        <div id="joystickValue">Joystick Value: </div>
 
-      <script>
-            function startConnect() {
-                // Generate a random client ID
-                clientID = "clientID_" + parseInt(Math.random() * 100);
+        <div id="log"></div> <!-- Added log container -->
+    </div>
+
+    <script>
+        let gamepad, client;
+
+        window.addEventListener("gamepadconnected", e => {
+            console.log(`Gamepad connected at index ${e.gamepad.index}: ${e.gamepad.id}. ${e.gamepad.buttons.length} buttons, ${e.gamepad.axes.length} axes.`);
+            gamepad = e.gamepad;
+            document.getElementById("gamepadStatus").textContent = "Gamepad Status: Connected";
+            client = new Paho.MQTT.Client("maqiatto.com", 8883, "clientID_" + parseInt(Math.random() * 100));
+            client.onConnectionLost = onConnectionLost;
+            client.connect({ userName: "benijuste.ngabire@hitachigymnasiet.se", password: "brok", onSuccess: onConnect, onFailure: onFail });
+        });
+
+        window.addEventListener("gamepaddisconnected", e => {
+            console.log(`Gamepad disconnected from index ${e.gamepad.index}: ${e.gamepad.id}`);
+            gamepad = null;
+            document.getElementById("gamepadStatus").textContent = "Gamepad Status: Disconnected";
+            document.getElementById("gamepadData").textContent = "Gamepad Data: N/A";
+        });
+
+        function logMessage(message) {
+            document.getElementById("log").innerHTML += `<div>${message}</div>`;
+        }
+
+        function update() {
+            // Get the latest gamepad object
+            const gamepads = navigator.getGamepads();
+            gamepad = gamepads[0]; // Assuming only one gamepad is connected
             
-                // Fetch the hostname/IP address and port number from the form
-                host =document.getElementById("host").value;
-                port = document.getElementById("port").value;
-            
-                // Print output for the user in the messages div
-                document.getElementById("messages").innerHTML += '<span>Connecting to: ' + host + ' on port: ' + port + '</span><br/>';
-                document.getElementById("messages").innerHTML += '<span>Using the following client value: ' + clientID + '</span><br/>';
-              // Initialize new Paho client connection
-                client = new Paho.MQTT.Client(host, Number(port), clientID);
-                // Set callback handlers
-                client.onConnectionLost = onConnectionLost;
-                client.onMessageArrived = onMessageArrived;
-            
-                client.connect({userName : "joakim.flink@abbindustrigymnasium.se",password : "apaapaapa",
-                    onSuccess: onConnect,
-                    onFailure: onFail,
-                               });
-            }
-            function onFail() {
-                document.getElementById("messages").innerHTML += '<span>ERROR: Connection to: ' + host + ' on port: ' + port + ' failed.</span><br/>'
- 
-            }  
-           let topic="joakim.flink@abbindustrigymnasium.se/";
-            // Called when the client connects
-            function onConnect() {
-                // Fetch the MQTT topic from the form
-                topic +=document.getElementById("topic").value;
-            console.log(topic);
-                // Print output for the user in the messages div
-                document.getElementById("messages").innerHTML += '<span>Subscribing to: ' + topic + '</span><br/>';
-            
-                // Subscribe to the requested topic
-                 client.subscribe(topic);
-                  message= new Paho.MQTT.Message("Hello World!");
-                  message.destinationName=topic;
-                  client.send(message);
-            }
-            function onSend() {
-                // Fetch the MQTT topic from the form
-                // Print output for the user in the messages div
-               let message= document.getElementById("newMessage").value;
-            console.log(message);
-                  message= new Paho.MQTT.Message(message);
-                  message.destinationName=topic;
-                  client.send(message);
-            }
-            // Called when the client loses its connection
-            function onConnectionLost(responseObject) {
-                document.getElementById("messages").innerHTML += '<span>ERROR: Connection lost</span><br/>';
-                if (responseObject.errorCode !== 0) {
-                    document.getElementById("messages").innerHTML += '<span>ERROR: ' + + responseObject.errorMessage + '</span><br/>';
+            if (gamepad) {
+                let newValue = Math.round(gamepad.axes[0] * 90 + 90);
+        
+                // Check if the value falls within the interval 80-100
+                if (newValue >= 80 && newValue <= 100) {
+                    newValue = 90; // Set the value to 90
                 }
+        
+                document.getElementById("joystickValue").textContent = `Joystick Value: ${newValue}`;
+                sendValueToBroker(newValue);
             }
-            
-            // Called when a message arrives
-            function onMessageArrived(message) {
-                console.log("onMessageArrived: " + message.payloadString);
-                document.getElementById("messages").innerHTML += '<span>Topic: ' + message.destinationName + '  | ' + message.payloadString + '</span><br/>';
-            }
-            
-            // Called when the disconnection button is pressed
-            function startDisconnect() {
-                client.disconnect();
-                document.getElementById("messages").innerHTML += '<span>Disconnected</span><br/>';
-            }
-            </script>
-            
-    </head>
-   <body>
-      <div class="wrapper">
-         <h1>mqtt-demo</h1>
-         <form id="connection-information-form">
-            <b>Hostname or IP Address:</b> 
-            <input id="host" type="text" name="host" value="maqiatto.com"><br>
-            <b>Port:</b>
-            <input id="port" type="text" name="port" value="8883"><br>
-            <b>Topic:</b>
-            <input id="topic" type="text" name="topic" value="lampa"><br><br>
-            <input type="button" onclick="startConnect()" value="Connect">
-            <input type="button" onclick="startDisconnect()" value="Disconnect">
-<br><br>
-            <input id="newMessage" type="text" name="newMessage" value="">
-            <input type="button" onclick="onSend()" value="Send">
-          
+            requestAnimationFrame(update);
+        }
+        
 
-         </form>
-         <div id="messages"></div>
-      </div>
-   </body>
+        function sendValueToBroker(value) {
+            if (client && client.isConnected()) {
+                let message = new Paho.MQTT.Message(value.toString());
+                message.destinationName = "benijuste.ngabire@hitachigymnasiet.se/gamepad";
+                client.send(message);
+                document.getElementById("brokerdata").innerHTML = `Joystick value sent to MQTT broker: ${value}`
+               
+            } else {
+                logMessage("Error: MQTT client is not connected");
+            }
+        }
+        
+
+        function onConnect() {
+            console.log("Connected to MQTT broker");
+            logMessage("Connected to MQTT broker");
+            requestAnimationFrame(update);
+        }
+
+        function onFail() {
+            console.error("Failed to connect to MQTT broker");
+            logMessage("Failed to connect to MQTT broker");
+        }
+
+        function onConnectionLost(responseObject) {
+            if (responseObject.errorCode !== 0) {
+                console.error("Connection lost:", responseObject.errorMessage);
+                logMessage(`Connection lost: ${responseObject.errorMessage}`);
+            }
+        }
+    </script>
+</body>
 </html>
