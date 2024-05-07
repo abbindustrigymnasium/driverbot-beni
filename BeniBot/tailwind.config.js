@@ -1,5 +1,5 @@
 import { join } from 'path'
-import type { Config } from 'tailwindcss'
+
 import { skeleton } from '@skeletonlabs/tw-plugin'
 
 export default {
@@ -8,16 +8,12 @@ export default {
 	theme: {
 		extend: {},
 	},
-	plugins: [
-		skeleton({
-			themes: {
-				preset: [
-					{
-						name: 'sahara',
-						enhancements: true,
-					},
-				],
-			},
-		}),
-	],
-} satisfies Config;
+	
+plugins: [
+	skeleton({
+		themes: { preset: [ "modern" ] }
+	})
+]
+
+
+};

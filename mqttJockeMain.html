@@ -5,46 +5,46 @@
    <title>mqtt-demo: A simple web application that can subscribe to topics from an MQTT broker over websockets</title>
    <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js" type="text/javascript"></script>
    <script>
-      let client, topic;
+      let client;
 
       function startConnect() {
-         let clientID = "clientID_" + parseInt(Math.random() * 100);
-         let host = document.getElementById("host").value;
-         let port = document.getElementById("port").value;
+         const host = document.getElementById("host").value;
+         const port = document.getElementById("port").value;
+         const clientID = "clientID_" + parseInt(Math.random() * 100);
+         const username = "benijuste.ngabire@hitachigymnasiet.se";
+         const password = "brok";
+
          document.getElementById("messages").innerHTML += '<span>Connecting to: ' + host + ' on port: ' + port + '</span><br/>';
+         document.getElementById("messages").innerHTML += '<span>Using the following client value: ' + clientID + '</span><br/>';
+
          client = new Paho.MQTT.Client(host, Number(port), clientID);
          client.onConnectionLost = onConnectionLost;
          client.onMessageArrived = onMessageArrived;
-         client.connect({
-            userName: "benijuste.ngabire@hitachigymnasiet.se",
-            password: "brok",
-            onSuccess: onConnect,
-            onFailure: onFail,
-         });
+
+         client.connect({ userName: username, password: password, onSuccess: onConnect, onFailure: onFail });
       }
 
       function onFail() {
-         document.getElementById("messages").innerHTML += '<span>ERROR: Connection failed.</span><br/>'
+         document.getElementById("messages").innerHTML += '<span>ERROR: Connection failed.</span><br/>';
       }
 
       function onConnect() {
-         topic = "benijuste.ngabire@hitachigymnasiet.se/" + document.getElementById("topic").value;
-         console.log(topic);
+         const topic = "benijuste.ngabire@hitachigymnasiet.se/" + document.getElementById("topic").value;
          document.getElementById("messages").innerHTML += '<span>Subscribing to: ' + topic + '</span><br/>';
-         client.subscribe(topic);
-         sendMessage("Hello World!");
-      }
 
-      function sendMessage(message) {
-         let mqttMessage = new Paho.MQTT.Message(message);
-         mqttMessage.destinationName = topic;
-         client.send(mqttMessage);
+         client.subscribe(topic);
+         const message = new Paho.MQTT.Message("Hello World!");
+         message.destinationName = topic;
+         client.send(message);
       }
 
       function onSend() {
-         let message = document.getElementById("newMessage").value;
-         console.log(message);
-         sendMessage(message);
+         const message = document.getElementById("newMessage").value;
+         const topic = "benijuste.ngabire@hitachigymnasiet.se/" + document.getElementById("topic").value;
+
+         const mqttMessage = new Paho.MQTT.Message(message);
+         mqttMessage.destinationName = topic;
+         client.send(mqttMessage);
       }
 
       function onConnectionLost(responseObject) {
@@ -55,10 +55,8 @@
       }
 
       function onMessageArrived(message) {
-        
-         if (message.destinationName === "benijuste.ngabire@hitachigymnasiet.se/gamepad") {
-            document.getElementById("gamepad-messages").innerHTML = message.payloadString ;
-         }
+         console.log("onMessageArrived: " + message.payloadString);
+         document.getElementById("messages").innerHTML += '<span>Topic: ' + message.destinationName + ' | ' + message.payloadString + '</span><br/>';
       }
 
       function startDisconnect() {
@@ -83,8 +81,6 @@
          <input type="button" onclick="onSend()" value="Send">
       </form>
       <div id="messages"></div>
-      <div id="received-messages"></div>
-      <div id="gamepad-messages"></div>
    </div>
 </body>
 </html>
