@@ -8,7 +8,7 @@
 		<!-- App Bar -->
 		<AppBar>
 			<svelte:fragment slot="lead">
-				<strong class="text-xl uppercase">Skeleton</strong>
+				<strong class="text-xl uppercase">BeniBot3000</strong>
 			</svelte:fragment>
 			<svelte:fragment slot="trail">
 				<a
@@ -21,19 +21,11 @@
 				</a>
 				<a
 					class="btn btn-sm variant-ghost-surface"
-					href="https://twitter.com/SkeletonUI"
+					href="https://github.com/abbindustrigymnasium/driverbot-beni"
 					target="_blank"
 					rel="noreferrer"
 				>
-					Twitter
-				</a>
-				<a
-					class="btn btn-sm variant-ghost-surface"
-					href="https://github.com/skeletonlabs/skeleton"
-					target="_blank"
-					rel="noreferrer"
-				>
-					GitHub
+					Driverbot-Repo
 				</a>
 			</svelte:fragment>
 		</AppBar>
