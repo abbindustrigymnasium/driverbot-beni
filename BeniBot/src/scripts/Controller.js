@@ -1,4 +1,3 @@
-
 let prevJoystickValue = 0;
 let prevMotorValue = 0;
 let lastUpdateTime = 0;
@@ -54,6 +53,12 @@ function update() {
                 prevMotorValue = motorValue;
             }
 
+            // Check for circle button press and send "honk1"
+            if (gamepad.buttons[1].pressed) {
+                sendHonk();
+                displayHonk();
+            }
+
             lastUpdateTime = currentTime;
         }
     }
@@ -80,12 +85,21 @@ function sendValueToMotor(value) {
     }
 }
 
+function sendHonk() {
+    if (client && client.isConnected()) {
+        let message = new Paho.MQTT.Message("honk1");
+        message.destinationName = "benijuste.ngabire@hitachigymnasiet.se/gamepad/honk";
+        client.send(message);
+    } else {
+        logMessage("Error: MQTT client is not connected");
+    }
+}
+
 function onConnect() {
     console.log("Connected to MQTT broker");
     
     requestAnimationFrame(update);
 }
-
 
 function onFail() {
     console.error("Failed to connect to MQTT broker");
@@ -95,4 +109,22 @@ function onConnectionLost(responseObject) {
     if (responseObject.errorCode !== 0) {
         console.error("Connection lost:", responseObject.errorMessage);
     }
+}
+
+function displayHonk() {
+    let honkDiv = document.createElement("div");
+    honkDiv.id = "honkDiv";
+    honkDiv.textContent = "Honk!";
+    honkDiv.style.position = "fixed";
+    honkDiv.style.top = "50%";
+    honkDiv.style.left = "50%";
+    honkDiv.style.transform = "translate(-50%, -50%)";
+    honkDiv.style.backgroundColor = "black";
+    honkDiv.style.padding = "20px";
+    honkDiv.style.border = "2px solid black";
+    document.body.appendChild(honkDiv);
+    
+    setTimeout(() => {
+        honkDiv.remove();
+    }, 500);
 }
