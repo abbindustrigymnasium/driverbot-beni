@@ -1,3 +1,7 @@
+document.addEventListener("DOMContentLoaded", function() {
+    setTimeout(connectToMQTT, 1000);
+});
+
 let keyState = {};
 let prevStickValue = 0;
 let prevDriveValue = 0;

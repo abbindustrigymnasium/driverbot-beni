@@ -2,18 +2,21 @@
 	import '../app.postcss';
 	import { AppShell, AppBar } from '@skeletonlabs/skeleton';
 	import { AppRail, AppRailTile, AppRailAnchor } from '@skeletonlabs/skeleton';
-	import Navigation from '../components/Navigation.svelte';
+	import Navigation from '../lib/components/Navigation.svelte';
 	import { initializeStores, Drawer, getDrawerStore } from '@skeletonlabs/skeleton';
 	import '$lib/styles.css';
 	initializeStores();
 	const drawerStore = getDrawerStore();
 	function drawerOpen() {
 	drawerStore.open({});
+
 }
 	
 </script>
 
-<Drawer width="w-44">
+
+
+<Drawer width=" min-w-32 w-[16%]  ">
 	<h2 class="p-4">Navigation</h2>
 	<hr />
 	<Navigation/>
@@ -26,7 +29,7 @@
 		<!-- App Bar -->
 		<AppBar >
 			<svelte:fragment slot="lead">
-				<div class="flex items-center">
+				<div class="flex items-center truncate ...">
 					<button class="btn btn-sm mr-4" on:click={drawerOpen}>
 						<span>
 							<svg viewBox="0 0 100 80" class="fill-token w-4 h-4">
@@ -36,7 +39,7 @@
 							</svg>
 						</span>
 					</button>
-					<strong class="text-xl uppercase">Skeleton</strong>
+					<strong class="text-xl uppercase text-clip">BeniDrive 3000</strong>
 				</div>
 			</svelte:fragment>
 			<svelte:fragment slot="trail">
@@ -67,6 +70,7 @@
 			</svelte:fragment>
 		</AppBar>
 	</svelte:fragment>
+	
 	
 
 
