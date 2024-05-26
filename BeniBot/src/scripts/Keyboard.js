@@ -101,7 +101,7 @@ function calculateDriveValueFromKeys() {
 function sendValueToStick(value) {
     if (client && client.isConnected()) {
         let message = new Paho.MQTT.Message(value.toString());
-        message.destinationName = "benijuste.ngabire@hitachigymnasiet.se/pc/stick";
+        message.destinationName = "benijuste.ngabire@hitachigymnasiet.se/gamepad/servo";
         client.send(message);
     } else {
         console.error("Error: MQTT client is not connected");
@@ -111,7 +111,7 @@ function sendValueToStick(value) {
 function sendValueToDrive(value) {
     if (client && client.isConnected()) {
         let message = new Paho.MQTT.Message(value.toString());
-        message.destinationName = "benijuste.ngabire@hitachigymnasiet.se/pc/drive";
+        message.destinationName = "benijuste.ngabire@hitachigymnasiet.se/gamepad/motor";
         client.send(message);
     } else {
         console.error("Error: MQTT client is not connected");

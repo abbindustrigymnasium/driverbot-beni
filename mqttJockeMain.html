@@ -36,6 +36,8 @@
          const message = new Paho.MQTT.Message("Hello World!");
          message.destinationName = topic;
          client.send(message);
+
+         console.log("Message sent:", "Hello World!", "Topic:", topic);
       }
 
       function onSend() {
@@ -45,6 +47,8 @@
          const mqttMessage = new Paho.MQTT.Message(message);
          mqttMessage.destinationName = topic;
          client.send(mqttMessage);
+
+         console.log("Message sent:", message, "Topic:", topic);
       }
 
       function onConnectionLost(responseObject) {
