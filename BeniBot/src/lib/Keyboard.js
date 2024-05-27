@@ -34,14 +34,14 @@ function update() {
     if (currentTime - lastUpdateTime > updateInterval) {
         let stickValue = calculateStickValueFromKeys();
         if (stickValue !== prevStickValue) {
-            document.getElementById("joystickValue").textContent = `Stick Value: ${stickValue}`;
+            document.getElementById("joystickValue").textContent = `Servo Value: ${stickValue}`;
             sendValueToStick(stickValue);
             prevStickValue = stickValue;
         }
 
         let driveValue = calculateDriveValueFromKeys();
         if (driveValue !== prevDriveValue) {
-            document.getElementById("motorValue").textContent = `Drive Value: ${driveValue}`;
+            document.getElementById("motorValue").textContent = `Motor Value: ${driveValue}`;
             sendValueToDrive(driveValue);
             prevDriveValue = driveValue;
         }
@@ -72,6 +72,9 @@ function handleKeyDown(event) {
     }
       if (event.key === ' ') { // Check if space key is pressed
         connectToMQTT(); // Connect to MQTT broker
+    }
+    if (event.key === 'f'){
+        toggleLED(); // Toggle
     }
     update();
 }
@@ -134,5 +137,18 @@ function onFail() {
 function onConnectionLost(responseObject) {
     if (responseObject.errorCode !== 0) {
         console.error("Connection lost:", responseObject.errorMessage);
+    }
+}
+
+
+function toggleLED() {
+    if (client && client.isConnected()) {
+        let message = new Paho.MQTT.Message("toggle");
+        message.destinationName = "benijuste.ngabire@hitachigymnasiet.se/gamepad/light";
+        client.send(message);
+ 
+
+    } else {
+        logMessage("Error: MQTT client is not connected");
     }
 }

@@ -2,6 +2,7 @@ let prevJoystickValue = 0;
 let prevMotorValue = 0;
 let lastUpdateTime = 0;
 const updateInterval = 10;
+let prevCircleButtonState = false;
 
 window.addEventListener("gamepadconnected", e => {
     gamepad = e.gamepad;
@@ -29,7 +30,7 @@ function update() {
             joystickValue = Math.round(joystickValue / 30) * 30;
             
             if (joystickValue !== prevJoystickValue) {
-                document.getElementById("joystickValue").textContent = `Joystick Value: ${joystickValue}`;
+                document.getElementById("joystickValue").textContent = `Servo Value: ${joystickValue}`;
                 sendValueToServo(joystickValue);
                 prevJoystickValue = joystickValue;
             }
@@ -51,12 +52,6 @@ function update() {
                 document.getElementById("motorValue").textContent = `Motor Value: ${motorValue}`;
                 sendValueToMotor(motorValue);
                 prevMotorValue = motorValue;
-            }
-
-            // Check for circle button press and send "honk1"
-            if (gamepad.buttons[1].pressed) {
-                sendHonk();
-                displayHonk();
             }
 
             lastUpdateTime = currentTime;
@@ -85,20 +80,10 @@ function sendValueToMotor(value) {
     }
 }
 
-function sendHonk() {
-    if (client && client.isConnected()) {
-        let message = new Paho.MQTT.Message("honk1");
-        message.destinationName = "benijuste.ngabire@hitachigymnasiet.se/gamepad/honk";
-        client.send(message);
-    } else {
-        logMessage("Error: MQTT client is not connected");
-    }
-}
-
 function onConnect() {
     console.log("Connected to MQTT broker");
-    
     requestAnimationFrame(update);
+    setInterval(checkCircleButtonPress, 50); // Check for circle button press every 50ms
 }
 
 function onFail() {
@@ -111,20 +96,25 @@ function onConnectionLost(responseObject) {
     }
 }
 
-function displayHonk() {
-    let honkDiv = document.createElement("div");
-    honkDiv.id = "honkDiv";
-    honkDiv.textContent = "Honk!";
-    honkDiv.style.position = "fixed";
-    honkDiv.style.top = "50%";
-    honkDiv.style.left = "50%";
-    honkDiv.style.transform = "translate(-50%, -50%)";
-    honkDiv.style.backgroundColor = "black";
-    honkDiv.style.padding = "20px";
-    honkDiv.style.border = "2px solid black";
-    document.body.appendChild(honkDiv);
-    
-    setTimeout(() => {
-        honkDiv.remove();
-    }, 500);
+function checkCircleButtonPress() {
+    const gamepads = navigator.getGamepads();
+    gamepad = gamepads[0];
+
+    if (gamepad) {
+        let currentCircleButtonState = gamepad.buttons[1].pressed;
+        if (currentCircleButtonState && !prevCircleButtonState) {
+            toggleLED();
+        }
+        prevCircleButtonState = currentCircleButtonState;
+    }
+}
+
+function toggleLED() {
+    if (client && client.isConnected()) {
+        let message = new Paho.MQTT.Message("toggle");
+        message.destinationName = "benijuste.ngabire@hitachigymnasiet.se/gamepad/light";
+        client.send(message);
+    } else {
+        logMessage("Error: MQTT client is not connected");
+    }
 }

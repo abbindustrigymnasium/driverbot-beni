@@ -10,4 +10,6 @@
 	<script src="src/lib/keyboard.js"></script> 
 </slot>
 </Home>
+<p>Press F to toggle light!</p>
+
 
