@@ -10,7 +10,7 @@
 
 <head>
     <meta charset="utf-8">
-    <title>BeniDrive 3000</title>
+    <title>BeniDrive 3000 - Controller</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js" type="text/javascript"></script>
 </head>
 <body>

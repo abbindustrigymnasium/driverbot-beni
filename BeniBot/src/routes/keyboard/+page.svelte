@@ -1,15 +1,11 @@
 <script>
+	import KeySite from '../../lib/components/keySite.svelte';
+import HomeKey from '../../lib/components/keySite.svelte';
 
 	import { onMount } from 'svelte';
-	import Home from "$lib/components/home.svelte";
+
 	
 </script>
-<Home control = "Keyboard">
-
-<slot slot="script"> 
-	<script src="src/lib/keyboard.js"></script> 
-</slot>
-</Home>
-<p>Press F to toggle light!</p>
-
+<KeySite>
+</KeySite>
 
