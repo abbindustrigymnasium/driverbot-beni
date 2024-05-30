@@ -1,19 +1,19 @@
-document.addEventListener("DOMContentLoaded", function() {
-    setTimeout(connectToMQTT, 1000);
-});
+document.addEventListener("DOMContentLoaded", () => setTimeout(connectToMQTT, 200));
 
-let keyState = {};
-let prevStickValue = 0;
-let prevDriveValue = 0;
-let lastUpdateTime = 0;
+let keyState = {}, prevStickValue = 0, prevDriveValue = 0, lastUpdateTime = 0;
 const updateInterval = 100;
-let client;
+let client, recording = false, recordedValues = [], recordStartTime = 0, driveGear = 0;
 
 window.addEventListener("keydown", handleKeyDown);
 window.addEventListener("keyup", handleKeyUp);
 
 function handleKeyDown(event) {
     keyState[event.key] = true;
+    if (['1', '2', '3'].includes(event.key)) changeDriveGear(event.key);
+    if (event.key === ' ') connectToMQTT();
+    if (event.key === 'f') toggleLED();
+    if (event.key === 'r') toggleRecording();
+    if (event.key === 'p') sendRecordedValues();
     update();
 }
 
@@ -23,10 +23,22 @@ function handleKeyUp(event) {
 }
 
 function connectToMQTT() {
-    client = new Paho.MQTT.Client("maqiatto.com", 8883, "clientID_" + parseInt(Math.random() * 100));
-    client.onConnectionLost = onConnectionLost;
-    client.connect({ userName: "benijuste.ngabire@hitachigymnasiet.se", password: "brok", onSuccess: onConnect, onFailure: onFail });
-    document.getElementById("mqttStatus").innerHTML = "Connected"
+    client = new Paho.MQTT.Client("maqiatto.com", 8883, `clientID_${Math.floor(Math.random() * 100)}`);
+    client.onConnectionLost = (responseObject) => {
+        if (responseObject.errorCode !== 0) console.error("Connection lost:", responseObject.errorMessage);
+    };
+    client.connect({
+        userName: "benijuste.ngabire@hitachigymnasiet.se",
+        password: "brok",
+        onSuccess: onConnect,
+        onFailure: () => console.error("Failed to connect to MQTT broker")
+    });
+    document.getElementById("mqttStatus").innerText = "Connected";
+}
+
+function onConnect() {
+    console.log("Connected to MQTT broker");
+    requestAnimationFrame(update);
 }
 
 function update() {
@@ -35,120 +47,86 @@ function update() {
         let stickValue = calculateStickValueFromKeys();
         if (stickValue !== prevStickValue) {
             document.getElementById("joystickValue").textContent = `Servo Value: ${stickValue}`;
-            sendValueToStick(stickValue);
+            sendValue("servo", stickValue);
             prevStickValue = stickValue;
         }
 
         let driveValue = calculateDriveValueFromKeys();
         if (driveValue !== prevDriveValue) {
             document.getElementById("motorValue").textContent = `Motor Value: ${driveValue}`;
-            sendValueToDrive(driveValue);
+            sendValue("motor", driveValue);
             prevDriveValue = driveValue;
         }
-
         lastUpdateTime = currentTime;
     }
     requestAnimationFrame(update);
 }
 
 function calculateStickValueFromKeys() {
-    if (keyState['ArrowLeft'] || keyState['a']) {
-        return 0;
-    } else if (keyState['ArrowRight'] || keyState['d']) {
-        return 180;
-    }
+    if (keyState['ArrowLeft'] || keyState['a']) return 0;
+    if (keyState['ArrowRight'] || keyState['d']) return 180;
     return 90;
 }
 
-let driveGear = 0; // Initialize drive gear
-
-window.addEventListener("keydown", handleKeyDown);
-window.addEventListener("keyup", handleKeyUp);
-
-function handleKeyDown(event) {
-    keyState[event.key] = true;
-    if (event.key === '1' || event.key === '2' || event.key === '3') {
-        changeDriveGear(event.key);
-    }
-      if (event.key === ' ') { // Check if space key is pressed
-        connectToMQTT(); // Connect to MQTT broker
-    }
-    if (event.key === 'f'){
-        toggleLED(); // Toggle
-    }
-    update();
-}
-
-function handleKeyUp(event) {
-    keyState[event.key] = false;
-    update();
-}
-
 function changeDriveGear(key) {
-    if (key === '1') {
-        driveGear = -1;
-    } else if (key === '2') {
-        driveGear = 0;
-    } else if (key === '3') {
-        driveGear = 1;
-    }
+    driveGear = key === '1' ? -1 : key === '2' ? 0 : 1;
 }
 
 function calculateDriveValueFromKeys() {
-    let driveValue = 0;
-    if (keyState['ArrowUp'] || keyState['w']) {
-        driveValue = driveGear === 1 ? 3 : (driveGear === 0 ? 2 : 1);
-    } else if (keyState['ArrowDown'] || keyState['s']) {
-        driveValue = driveGear === 1 ? -3 : (driveGear === 0 ? -2 : -1);
-    }
-    return driveValue;
+    if (keyState['ArrowUp'] || keyState['w']) return driveGear === 1 ? 3 : driveGear === 0 ? 2 : 1;
+    if (keyState['ArrowDown'] || keyState['s']) return driveGear === 1 ? -3 : driveGear === 0 ? -2 : -1;
+    return 0;
 }
 
-
-function sendValueToStick(value) {
+function sendValue(type, value) {
     if (client && client.isConnected()) {
         let message = new Paho.MQTT.Message(value.toString());
-        message.destinationName = "benijuste.ngabire@hitachigymnasiet.se/gamepad/servo";
+        message.destinationName = `benijuste.ngabire@hitachigymnasiet.se/gamepad/${type}`;
         client.send(message);
+        if (recording) recordedValues.push({ type, value, time: Date.now() - recordStartTime });
     } else {
         console.error("Error: MQTT client is not connected");
     }
 }
-
-function sendValueToDrive(value) {
-    if (client && client.isConnected()) {
-        let message = new Paho.MQTT.Message(value.toString());
-        message.destinationName = "benijuste.ngabire@hitachigymnasiet.se/gamepad/motor";
-        client.send(message);
-    } else {
-        console.error("Error: MQTT client is not connected");
-    }
-}
-
-function onConnect() {
-    console.log("Connected to MQTT broker");
-    requestAnimationFrame(update);
-}
-
-function onFail() {
-    console.error("Failed to connect to MQTT broker");
-}
-
-function onConnectionLost(responseObject) {
-    if (responseObject.errorCode !== 0) {
-        console.error("Connection lost:", responseObject.errorMessage);
-    }
-}
-
 
 function toggleLED() {
-    if (client && client.isConnected()) {
-        let message = new Paho.MQTT.Message("toggle");
-        message.destinationName = "benijuste.ngabire@hitachigymnasiet.se/gamepad/light";
-        client.send(message);
- 
+    sendValue("light", "toggle");
+}
 
+function toggleRecording() {
+    recording = !recording;
+    console.log(recording ? "Recording started" : "Recording stopped");
+    if (recording) {
+        recordedValues = [];
+        recordStartTime = Date.now();
     } else {
-        logMessage("Error: MQTT client is not connected");
+        console.log("Recorded values:", recordedValues);
     }
 }
+
+function sendRecordedValues() {
+    if (!recording && client && client.isConnected() && recordedValues.length > 0) {
+        let startTime = recordedValues[0].time;
+        recordedValues.forEach((record, index) => {
+            setTimeout(() => {
+                let message = new Paho.MQTT.Message(record.value.toString());
+                message.destinationName = `benijuste.ngabire@hitachigymnasiet.se/gamepad/${record.type}`;
+                client.send(message);
+                console.log(`Sent ${record.type} value: ${record.value}`);
+                // Check if it's the last recorded value, and if so, send a stop command
+                if (index === recordedValues.length - 1) {
+                    setTimeout(() => {
+                        sendValue("motor", 0); // Stop the motor
+                        console.log("Car stopped");
+                    }, 500); // Delay the stop command to ensure it's after the last command
+                }
+            }, record.time - startTime);
+        });
+        console.log("All recorded values sent with correct intervals.");
+    } else if (recording) {
+        console.error("Error: Cannot playback while recording is in progress");
+    } else {
+        console.error("Error: MQTT client is not connected or no recorded values");
+    }
+}
+

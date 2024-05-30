@@ -1,22 +1,31 @@
-let prevJoystickValue = 0;
-let prevMotorValue = 0;
-let lastUpdateTime = 0;
+
+
+let keyState = {}, prevJoystickValue = 0, prevMotorValue = 0, lastUpdateTime = 0;
 const updateInterval = 10;
-let prevCircleButtonState = false;
+let recording = false, recordedValues = [], recordStartTime = 0, client, gamepad;
 
 window.addEventListener("gamepadconnected", e => {
     gamepad = e.gamepad;
     document.getElementById("gamepadStatus").textContent = "Gamepad Status: Connected";
-    document.getElementById("mqttStatus").innerHTML = "Connected";
-    client = new Paho.MQTT.Client("maqiatto.com", 8883, "clientID_" + parseInt(Math.random() * 100));
-    client.onConnectionLost = onConnectionLost;
-    client.connect({ userName: "benijuste.ngabire@hitachigymnasiet.se", password: "brok", onSuccess: onConnect, onFailure: onFail });
+    connectToMQTT();
 });
 
-window.addEventListener("gamepaddisconnected", e => {
+window.addEventListener("gamepaddisconnected", () => {
     gamepad = null;
     document.getElementById("gamepadStatus").textContent = "Gamepad Status: Disconnected";
 });
+
+function connectToMQTT() {
+    client = new Paho.MQTT.Client("maqiatto.com", 8883, "clientID_" + parseInt(Math.random() * 100));
+    client.onConnectionLost = onConnectionLost;
+    client.connect({
+        userName: "benijuste.ngabire@hitachigymnasiet.se",
+        password: "brok",
+        onSuccess: onConnect,
+        onFailure: () => console.error("Failed to connect to MQTT broker")
+    });
+    document.getElementById("mqttStatus").innerHTML = "Connected";
+}
 
 function update() {
     const gamepads = navigator.getGamepads();
@@ -27,7 +36,9 @@ function update() {
         if (currentTime - lastUpdateTime > updateInterval) {
             let joystickValue = Math.round(gamepad.axes[0] * 90 + 90);
             joystickValue = Math.min(Math.max(joystickValue, 0), 180);
-            joystickValue = Math.round(joystickValue / 30) * 30;
+
+            // Map joystick value to only 0, 45, 90, 135, 180
+            joystickValue = joystickValue <= 22.5 ? 0 : joystickValue <= 67.5 ? 45 : joystickValue <= 112.5 ? 90 : joystickValue <= 157.5 ? 135 : 180;
             
             if (joystickValue !== prevJoystickValue) {
                 document.getElementById("joystickValue").textContent = `Servo Value: ${joystickValue}`;
@@ -37,21 +48,29 @@ function update() {
 
             let motorValue = 0;
             if (gamepad.buttons[7].pressed && !gamepad.buttons[6].pressed) {
-                if (gamepad.buttons[7].value < 0.7) motorValue = 1;
-                else if (gamepad.buttons[7].value < 0.999) motorValue = 2;
-                else motorValue = 3;
+                motorValue = gamepad.buttons[7].value < 0.7 ? 1 : gamepad.buttons[7].value < 0.999 ? 2 : 3;
             } else if (gamepad.buttons[6].pressed && !gamepad.buttons[7].pressed) {
-                if (gamepad.buttons[6].value < 0.7) motorValue = -1;
-                else if (gamepad.buttons[6].value < 0.999) motorValue = -2;
-                else motorValue = -3;
-            } else if (gamepad.buttons[6].pressed && gamepad.buttons[7].pressed) {
-                motorValue = 0;
+                motorValue = gamepad.buttons[6].value < 0.7 ? -1 : gamepad.buttons[6].value < 0.999 ? -2 : -3;
             }
-            
+
             if (motorValue !== prevMotorValue) {
                 document.getElementById("motorValue").textContent = `Motor Value: ${motorValue}`;
                 sendValueToMotor(motorValue);
                 prevMotorValue = motorValue;
+            }
+
+            if (gamepad.buttons[2].pressed && !keyState['recording']) {
+                toggleRecording();
+                keyState['recording'] = true;
+            } else if (!gamepad.buttons[2].pressed && keyState['recording']) {
+                keyState['recording'] = false;
+            }
+
+            if (gamepad.buttons[3].pressed && !keyState['send']) {
+                sendRecordedValues();
+                keyState['send'] = true;
+            } else if (!gamepad.buttons[3].pressed && keyState['send']) {
+                keyState['send'] = false;
             }
 
             lastUpdateTime = currentTime;
@@ -60,34 +79,67 @@ function update() {
     requestAnimationFrame(update);
 }
 
-function sendValueToServo(value) {
-    if (client && client.isConnected()) {
-        let message = new Paho.MQTT.Message(value.toString());
-        message.destinationName = "benijuste.ngabire@hitachigymnasiet.se/gamepad/servo";
-        client.send(message);
+function toggleRecording() {
+    recording = !recording;
+    console.log(recording ? "Recording started" : "Recording stopped");
+    if (recording) {
+        recordedValues = [];
+        recordStartTime = Date.now();
+    }
+}
+function sendRecordedValues() {
+    
+    if (client && client.isConnected() && recordedValues.length > 0) {
+        let startTime = recordedValues[0].time;
+        recordedValues.forEach((record, index) => {
+            setTimeout(() => {
+                sendValue(record.type, record.value);
+                // Check if it's the last recorded value, and if so, send a stop command
+                if (index === recordedValues.length - 1) {
+                    setTimeout(() => {
+                        sendValueToMotor(0); // Stop the motor
+                        console.log("Car stopped");
+                    }, 500); // Delay the stop command to ensure it's after the last command
+                }
+            }, record.time - startTime);
+        });
+        console.log("All recorded values sent with correct intervals.");
     } else {
-        logMessage("Error: MQTT client is not connected");
+        if (!client || !client.isConnected()) {
+            console.error("Error: MQTT client is not connected");
+        }
+        if (recordedValues.length === 0) {
+            console.error("Error: No recorded values");
+        }
     }
 }
 
-function sendValueToMotor(value) {
+
+function sendValue(type, value) {
     if (client && client.isConnected()) {
         let message = new Paho.MQTT.Message(value.toString());
-        message.destinationName = "benijuste.ngabire@hitachigymnasiet.se/gamepad/motor";
+        message.destinationName = `benijuste.ngabire@hitachigymnasiet.se/gamepad/${type}`;
         client.send(message);
+        if (recording) {
+            recordedValues.push({ type, value, time: Date.now() - recordStartTime });
+        }
     } else {
-        logMessage("Error: MQTT client is not connected");
+        console.error("Error: MQTT client is not connected");
     }
+}
+
+function sendValueToServo(value) {
+    sendValue("servo", value);
+}
+
+function sendValueToMotor(value) {
+    sendValue("motor", value);
 }
 
 function onConnect() {
     console.log("Connected to MQTT broker");
     requestAnimationFrame(update);
-    setInterval(checkCircleButtonPress, 50); // Check for circle button press every 50ms
-}
-
-function onFail() {
-    console.error("Failed to connect to MQTT broker");
+    setInterval(checkCircleButtonPress, 50);
 }
 
 function onConnectionLost(responseObject) {
@@ -102,19 +154,11 @@ function checkCircleButtonPress() {
 
     if (gamepad) {
         let currentCircleButtonState = gamepad.buttons[1].pressed;
-        if (currentCircleButtonState && !prevCircleButtonState) {
-            toggleLED();
-        }
+        if (currentCircleButtonState && !prevCircleButtonState) toggleLED();
         prevCircleButtonState = currentCircleButtonState;
     }
 }
 
 function toggleLED() {
-    if (client && client.isConnected()) {
-        let message = new Paho.MQTT.Message("toggle");
-        message.destinationName = "benijuste.ngabire@hitachigymnasiet.se/gamepad/light";
-        client.send(message);
-    } else {
-        logMessage("Error: MQTT client is not connected");
-    }
+    sendValue("light", "toggle");
 }
