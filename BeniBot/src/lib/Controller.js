@@ -1,7 +1,6 @@
-
-
+document.addEventListener("DOMContentLoaded", () => setTimeout(connectMQTT, 200));
 let keyState = {}, prevJoystickValue = 0, prevMotorValue = 0, lastUpdateTime = 0;
-const updateInterval = 10;
+const updateInterval = 0;
 let recording = false, recordedValues = [], recordStartTime = 0, client, gamepad;
 
 window.addEventListener("gamepadconnected", e => {
@@ -32,8 +31,7 @@ function update() {
     gamepad = gamepads[0];
 
     if (gamepad) {
-        let currentTime = Date.now();
-        if (currentTime - lastUpdateTime > updateInterval) {
+
             let joystickValue = Math.round(gamepad.axes[0] * 90 + 90);
             joystickValue = Math.min(Math.max(joystickValue, 0), 180);
 
@@ -73,8 +71,6 @@ function update() {
                 keyState['send'] = false;
             }
 
-            lastUpdateTime = currentTime;
-        }
     }
     requestAnimationFrame(update);
 }
@@ -93,7 +89,7 @@ function sendRecordedValues() {
         let startTime = recordedValues[0].time;
         recordedValues.forEach((record, index) => {
             setTimeout(() => {
-                sendValue(record.type, record.value);
+                sendVal(record.type, record.value);
                 // Check if it's the last recorded value, and if so, send a stop command
                 if (index === recordedValues.length - 1) {
                     setTimeout(() => {
@@ -115,13 +111,16 @@ function sendRecordedValues() {
 }
 
 
-function sendValue(type, value) {
+function sendVal(type, value) {
     if (client && client.isConnected()) {
-        let message = new Paho.MQTT.Message(value.toString());
-        message.destinationName = `benijuste.ngabire@hitachigymnasiet.se/gamepad/${type}`;
-        client.send(message);
-        if (recording) {
-            recordedValues.push({ type, value, time: Date.now() - recordStartTime });
+        try {
+            value = value.toString();
+            let message = new Paho.MQTT.Message(value); // <--- Convert value to JSON string
+            message.destinationName = `benijuste.ngabire@hitachigymnasiet.se/gamepad/${type}`;
+            client.send(message);
+            if (recording) recordedValues.push({ type, value, time: Date.now() - recordStartTime });
+        } catch (error) {
+            console.error("Failed to send message:", error);
         }
     } else {
         console.error("Error: MQTT client is not connected");
@@ -129,11 +128,11 @@ function sendValue(type, value) {
 }
 
 function sendValueToServo(value) {
-    sendValue("servo", value);
+    sendVal("servo", value);
 }
 
 function sendValueToMotor(value) {
-    sendValue("motor", value);
+    sendVal("motor", value);
 }
 
 function onConnect() {
