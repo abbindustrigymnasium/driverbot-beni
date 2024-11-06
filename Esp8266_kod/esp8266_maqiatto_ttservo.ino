@@ -5,20 +5,28 @@
 WiFiClient wifiClient;
 PubSubClient mqttClient(wifiClient);
 Servo myServo;
-// konfiguration för nätverk samt för maqiatto
-const char* ssid = "ABBgym_2.4";
-const char* password = "mittwifiarsabra";
+String clientId = "IoTPractice-" + String(ESP.getChipId());
+
+// Configuration for network and maqiatto
+const char* ssid = "ABB_Gym_IOT";
+const char* password = "Welcome2abb";
 const char* mqtt_server = "maqiatto.com";
 const int mqtt_port = 1883;
 const char* mqtt_username = "benijuste.ngabire@hitachigymnasiet.se";
-const char* mqtt_password = "brok";
+const char* mqtt_password = "1234";
 const char* mqtt_topic_servo = "benijuste.ngabire@hitachigymnasiet.se/gamepad/servo";
 const char* mqtt_topic_motor = "benijuste.ngabire@hitachigymnasiet.se/gamepad/motor";
+const char* mqtt_topic_light = "benijuste.ngabire@hitachigymnasiet.se/gamepad/light";
 
-// Pins för riktning och hastighet
-#define motorPin  5 
-#define motorDir  0 
-// Anslut till nätverket
+bool lightState = false;
+// Pins for direction and speed
+#define motorPin  5 //D1
+#define motorDir  0 //D3
+
+
+
+
+// Connect to the network
 void setupWiFi() {
   WiFi.begin(ssid, password);
   Serial.println("Connecting to WiFi...");
@@ -30,39 +38,34 @@ void setupWiFi() {
   Serial.print("IP address: ");
   Serial.println(WiFi.localIP());
 }
-//Funktionen körs när ett meddelande tas emot
+
+// Function runs when a message is received
 void mqttCallback(char* topic, byte* payload, unsigned int length) {
   static char payloadBuffer[256]; // Static buffer for payload
-  Serial.printf("\rMessage received in topic: %s\n", topic);
-
   // Copy payload to static buffer and null-terminate
   strncpy(payloadBuffer, (char*)payload, length);
   payloadBuffer[length] = '\0';
-  Serial.printf("Payload: %s   ", payloadBuffer);
 
   if (strcmp(topic, mqtt_topic_servo) == 0) {
-    // gör om meddelandet från en string till en int
+    // Convert the message from a string to an int
     int angle = atoi(payloadBuffer);
-    angle = constrain(angle, 0, 180); 
 
-    // Uppdatera servons position
+    // Update servo position
     myServo.write(angle);
     
     Serial.print("Servo turned to ");
     Serial.print(angle);
-    Serial.print(" degrees.       ");
+    Serial.println(" degrees.");
   } else if (strcmp(topic, mqtt_topic_motor) == 0) {
-    
     int speedIndex = atoi(payloadBuffer);
-    
-    // Bestäm körriktning beroende på om det mottagna värdet är positivt eller negativt
+    // Determine driving direction based on whether the received value is positive or negative
     int motorDirValue = (speedIndex < 0) ? HIGH : LOW;
     digitalWrite(motorDir, motorDirValue);
-
-    // Gör om till positivt tal för beräkningar
+    
+    // Convert to positive number for calculations
     speedIndex = abs(speedIndex);
 
-    // Olika hastigheter beroende på det skickade meddelandet, stanna om 0
+    // Different speeds depending on the sent message, stop if 0
     int motorSpeed;
     switch(speedIndex) {
       case 1:
@@ -85,43 +88,58 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
     Serial.print((motorDirValue == HIGH) ? "Reverse" : "Forward");
     Serial.println();
   }
+  else if (strcmp(topic, mqtt_topic_light) == 0) {
+    // Toggle the light state
+    lightState = !lightState;
+    digitalWrite(D5, lightState ? HIGH : LOW);
+    Serial.print("Light state toggled to ");
+    Serial.println(lightState ? "ON" : "OFF");
+  }
 }
 
-//Återanslut
+// Reconnect
 void reconnect() {
   while (!mqttClient.connected()) {
     Serial.println("Attempting MQTT connection...");
-    if (mqttClient.connect("ESP8266Client", mqtt_username, mqtt_password)) {
-      //Om allt går rätt, subscribea till båda topics
+    if (mqttClient.connect(clientId.c_str(), mqtt_username, mqtt_password)) {
+      // If everything goes right, subscribe to both topics
       Serial.println("MQTT connected");
       mqttClient.subscribe(mqtt_topic_servo, 0);
       mqttClient.subscribe(mqtt_topic_motor, 0);
-      break;
+      mqttClient.subscribe(mqtt_topic_light, 0);
+   
     } else {
       Serial.print("Failed to connect to MQTT, rc=");
       Serial.print(mqttClient.state());
       Serial.println(" Retrying in 5 seconds...");
       delay(5000);
-      break; 
     }
   }
 }
 
 void setup() {
   Serial.begin(115200);
+
   setupWiFi();
   mqttClient.setServer(mqtt_server, mqtt_port);
   mqttClient.setCallback(mqttCallback);
-  myServo.attach(D7);
+  myServo.attach(D6);
   pinMode(motorPin, OUTPUT);
   pinMode(motorDir, OUTPUT);
+  pinMode(D6, OUTPUT);
+  pinMode(D5, OUTPUT);
+  reconnect();
+  analogWrite(motorPin,100);
+  delay(300);
+  analogWrite(motorPin, 0);
+
 }
+
 
 void loop() {
   if (!mqttClient.connected()) {
     reconnect();
   }
-  // Processera information och behåll anslutning
   mqttClient.loop();
-  delay(30)
 }
+
